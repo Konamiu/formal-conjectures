@@ -295,13 +295,29 @@ theorem W_3_3 : W 3 3 = 9 := by
     rw [mem_mixedMonoAPGuaranteeSet_iff (by norm_num) (by norm_num)] at hN
     interval_cases N <;> revert hN <;> decide +kernel
 
-/-- $W(3, 4) = 18$ from [AKS14]. -/
+/-- $W(3, 4) = 18$ from [AKS14]. The finite checks over `2 ^ 18` colourings exceed the kernel's
+recursion limit, so they use `native_decide`. -/
 @[category research solved, AMS 5 11]
-theorem W_3_4 : W 3 4 = 18 := by sorry
+theorem W_3_4 : W 3 4 = 18 := by
+  refine IsLeast.csInf_eq ⟨?_, fun N hN => ?_⟩
+  · rw [mem_mixedMonoAPGuaranteeSet_iff (by norm_num) (by norm_num)]
+    native_decide
+  · by_contra hlt
+    push Not at hlt
+    rw [mem_mixedMonoAPGuaranteeSet_iff (by norm_num) (by norm_num)] at hN
+    interval_cases N <;> revert hN <;> native_decide
 
-/-- $W(3, 5) = 22$ from [AKS14]. -/
+set_option maxHeartbeats 0 in
+/-- $W(3, 5) = 22$ from [AKS14]; finite checks over `2 ^ 22` colourings by `native_decide`. -/
 @[category research solved, AMS 5 11]
-theorem W_3_5 : W 3 5 = 22 := by sorry
+theorem W_3_5 : W 3 5 = 22 := by
+  refine IsLeast.csInf_eq ⟨?_, fun N hN => ?_⟩
+  · rw [mem_mixedMonoAPGuaranteeSet_iff (by norm_num) (by norm_num)]
+    native_decide
+  · by_contra hlt
+    push Not at hlt
+    rw [mem_mixedMonoAPGuaranteeSet_iff (by norm_num) (by norm_num)] at hN
+    interval_cases N <;> revert hN <;> native_decide
 
 /-- $W(3, 6) = 32$ from [AKS14]. -/
 @[category research solved, AMS 5 11]
