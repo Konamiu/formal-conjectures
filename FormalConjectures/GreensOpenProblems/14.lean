@@ -148,9 +148,152 @@ theorem green_14_variant_2r2 :
   sorry
 
 -- Known exact values for `W(3,r)` from [AKS14].
-/-- $W(3, 3) = 9$ from [AKS14]. -/
+
+/-- A subset of `{1, …, N}` is a `k`-term arithmetic progression (`k ≥ 1`) iff it consists of
+`a, a + d, …, a + (k - 1) d` for some `a ≥ 1`, `d ≥ 1` with `a + (k - 1) d ≤ N`; here
+`k ≥ 2`. -/
+@[category API, AMS 5 11]
+theorem isAPOfLength_iff {N k : ℕ} (hk : 2 ≤ k) (s : Finset (Set.Icc 1 N)) :
+    ({(s' : ℕ) | s' ∈ s} : Set ℕ).IsAPOfLength k ↔
+      ∃ a d : ℕ, 1 ≤ a ∧ 1 ≤ d ∧ a + (k - 1) * d ≤ N ∧
+        ∀ x : Set.Icc 1 N, x ∈ s ↔ ∃ i < k, (x : ℕ) = a + i * d := by
+  have key : ∀ x : Set.Icc 1 N,
+      (x : ℕ) ∈ ({(s' : ℕ) | s' ∈ s} : Set ℕ) ↔ x ∈ s := by
+    intro x
+    constructor
+    · rintro ⟨y, hy, hxy⟩
+      rw [← Subtype.ext hxy]
+      exact hy
+    · intro hx
+      exact ⟨x, hx, rfl⟩
+  constructor
+  · rintro ⟨a, d, hcard, hset⟩
+    have hd : d ≠ 0 := by
+      rintro rfl
+      have : ({(s' : ℕ) | s' ∈ s} : Set ℕ) = {a} := by
+        rw [hset]
+        ext x
+        simp only [Set.mem_ofPred_eq, Set.mem_singleton_iff]
+        constructor
+        · rintro ⟨n, -, rfl⟩
+          simp
+        · rintro rfl
+          exact ⟨0, by exact_mod_cast (show 0 < k by omega), by simp⟩
+      rw [this] at hcard
+      simp at hcard
+      norm_cast at hcard
+      omega
+    have hmem : ∀ n : ℕ, n < k → a + n • d ∈ ({(s' : ℕ) | s' ∈ s} : Set ℕ) := by
+      intro n hn
+      rw [hset]
+      exact ⟨n, by exact_mod_cast hn, rfl⟩
+    obtain ⟨x0, hx0, e0⟩ := hmem 0 (by omega)
+    obtain ⟨xk, hxk, ek⟩ := hmem (k - 1) (by omega)
+    have ha : 1 ≤ a := by
+      have := x0.2
+      rw [Set.mem_Icc] at this
+      simp at e0
+      omega
+    have hN : a + (k - 1) * d ≤ N := by
+      have := xk.2
+      rw [Set.mem_Icc] at this
+      simp only [smul_eq_mul] at ek
+      omega
+    refine ⟨a, d, ha, Nat.one_le_iff_ne_zero.2 hd, hN, fun x => ?_⟩
+    rw [← key, hset]
+    constructor
+    · rintro ⟨n, hn, hx⟩
+      exact ⟨n, by exact_mod_cast hn, by rw [← hx, smul_eq_mul]⟩
+    · rintro ⟨i, hi, hx⟩
+      exact ⟨i, by exact_mod_cast hi, by rw [hx, smul_eq_mul]⟩
+  · rintro ⟨a, d, ha, hd, hN, hs⟩
+    have hset : ({(s' : ℕ) | s' ∈ s} : Set ℕ) =
+        ((Finset.range k).image fun i => a + i * d : Finset ℕ) := by
+      ext x
+      simp only [Set.mem_ofPred_eq, Finset.coe_image, Finset.coe_range, Set.mem_image,
+        Set.mem_Iio]
+      constructor
+      · rintro ⟨y, hy, rfl⟩
+        obtain ⟨i, hi, hyi⟩ := (hs y).1 hy
+        exact ⟨i, hi, hyi.symm⟩
+      · rintro ⟨i, hi, rfl⟩
+        have hxN : a + i * d ∈ Set.Icc 1 N := by
+          rw [Set.mem_Icc]
+          have : i * d ≤ (k - 1) * d := Nat.mul_le_mul_right d (by omega)
+          omega
+        exact ⟨⟨a + i * d, hxN⟩, (hs ⟨a + i * d, hxN⟩).2 ⟨i, hi, rfl⟩, rfl⟩
+    refine ⟨a, d, ?_, ?_⟩
+    · rw [hset, ENat.card_coe_set_eq, Set.encard_coe_eq_coe_finsetCard,
+        Finset.card_image_of_injective _
+          (fun i j h => Nat.eq_of_mul_eq_mul_right hd (Nat.add_left_cancel h)),
+        Finset.card_range]
+    · rw [hset]
+      ext x
+      simp only [Finset.coe_image, Finset.coe_range, Set.mem_image, Set.mem_Iio,
+        Set.mem_ofPred_eq]
+      constructor
+      · rintro ⟨i, hi, rfl⟩
+        exact ⟨i, by exact_mod_cast hi, by rw [smul_eq_mul]⟩
+      · rintro ⟨n, hn, rfl⟩
+        exact ⟨n, by exact_mod_cast hn, by rw [smul_eq_mul]⟩
+
+/-- A decidable form of "the colouring has a `k`-term progression in colour `c`". -/
+def HasMonoAP (N k : ℕ) (c : Fin 2) (coloring : Set.Icc 1 N → Fin 2) : Prop :=
+  ∃ a ∈ Finset.range (N + 1), ∃ d ∈ Finset.range (N + 1),
+    ∃ h : 1 ≤ a ∧ 1 ≤ d ∧ a + (k - 1) * d ≤ N,
+    ∀ i, ∀ hi : i ∈ Finset.range k, coloring ⟨a + i * d, by
+      rw [Set.mem_Icc]
+      have : i * d ≤ (k - 1) * d := Nat.mul_le_mul_right d (by
+        have := Finset.mem_range.1 hi; omega)
+      omega⟩ = c
+
+instance (N k : ℕ) (c : Fin 2) (coloring : Set.Icc 1 N → Fin 2) :
+    Decidable (HasMonoAP N k c coloring) := by
+  unfold HasMonoAP; infer_instance
+
+@[category API, AMS 5 11]
+theorem mem_mixedMonoAPGuaranteeSet_iff {k r : ℕ} (hk : 2 ≤ k) (hr : 2 ≤ r) (N : ℕ) :
+    N ∈ mixedMonoAPGuaranteeSet k r ↔
+      ∀ coloring : Set.Icc 1 N → Fin 2,
+        HasMonoAP N k 0 coloring ∨ HasMonoAP N r 1 coloring := by
+  simp only [mixedMonoAPGuaranteeSet, Set.mem_ofPred_eq]
+  refine forall_congr' fun coloring => ?_
+  have aux : ∀ (m : ℕ) (hm : 2 ≤ m) (c : Fin 2),
+      (∃ s : Finset (Set.Icc 1 N), ({(s' : ℕ) | s' ∈ s} : Set ℕ).IsAPOfLength m ∧
+        ∀ x ∈ s, coloring x = c) ↔ HasMonoAP N m c coloring := by
+    intro m hm c
+    constructor
+    · rintro ⟨s, hs, hc⟩
+      obtain ⟨a, d, ha, hd, hN, hmem⟩ := (isAPOfLength_iff hm s).1 hs
+      have hdN : d ≤ (m - 1) * d := Nat.le_mul_of_pos_left d (by omega)
+      refine ⟨a, Finset.mem_range.2 (by omega), d, Finset.mem_range.2 (by omega),
+        ⟨ha, hd, hN⟩,
+        fun i hi => hc _ ((hmem _).2 ⟨i, Finset.mem_range.1 hi, rfl⟩)⟩
+    · rintro ⟨a, -, d, -, ⟨ha, hd, hN⟩, h⟩
+      classical
+      refine ⟨Finset.univ.filter fun x : Set.Icc 1 N => ∃ i < m, (x : ℕ) = a + i * d,
+        ?_, ?_⟩
+      · exact (isAPOfLength_iff hm _).2 ⟨a, d, ha, hd, hN, fun x => by simp⟩
+      · intro x hx
+        obtain ⟨i, hi, hxi⟩ := (Finset.mem_filter.1 hx).2
+        have := h i (Finset.mem_range.2 hi)
+        rw [← this]
+        congr 1
+        exact Subtype.ext hxi
+  rw [aux k hk 0, aux r hr 1]
+
+/-- $W(3, 3) = 9$ from [AKS14]. Every `2`-colouring of `{1, …, 9}` has a monochromatic
+`3`-term progression, and each `{1, …, N}` with `N ≤ 8` has a colouring without one; both are
+finite checks. -/
 @[category research solved, AMS 5 11]
-theorem W_3_3 : W 3 3 = 9 := by sorry
+theorem W_3_3 : W 3 3 = 9 := by
+  refine IsLeast.csInf_eq ⟨?_, fun N hN => ?_⟩
+  · rw [mem_mixedMonoAPGuaranteeSet_iff (by norm_num) (by norm_num)]
+    decide +kernel
+  · by_contra hlt
+    push Not at hlt
+    rw [mem_mixedMonoAPGuaranteeSet_iff (by norm_num) (by norm_num)] at hN
+    interval_cases N <;> revert hN <;> decide +kernel
 
 /-- $W(3, 4) = 18$ from [AKS14]. -/
 @[category research solved, AMS 5 11]
