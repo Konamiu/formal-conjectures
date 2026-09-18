@@ -15,6 +15,7 @@ limitations under the License.
 -/
 
 import FormalConjecturesUtil
+import FormalConjectures.ErdosProblems.«486».Bridge
 
 /-!
 # Erdős Problem 486: Logarithmic density for sets avoiding modular subsets
@@ -34,10 +35,12 @@ The set $A$ is encoded by taking $X_n = \emptyset$ for $n \notin A$. Only positi
 $n$ are considered, since $\mathbb{Z}/0\mathbb{Z} = \mathbb{Z}$ would allow $B$ to be an
 arbitrary set.
 -/
-@[category research open, AMS 11]
-theorem erdos_486 : answer(sorry) ↔
+@[category research solved, AMS 11]
+theorem erdos_486 : answer(False) ↔
     ∀ X : (n : ℕ) → Set (ZMod n),
       ∃ d, {m : ℕ | ∀ n, 0 < n → n < m → (m : ZMod n) ∉ X n}.HasLogDensity d := by
-  sorry
+  show False ↔ _
+  simp only [false_iff]
+  exact Erdos486Bridge.erdos_486_false
 
 end Erdos486
